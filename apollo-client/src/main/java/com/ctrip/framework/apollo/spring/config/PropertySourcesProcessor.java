@@ -70,6 +70,7 @@ public class PropertySourcesProcessor implements BeanFactoryPostProcessor, Envir
     ImmutableSortedSet<Integer> orders = ImmutableSortedSet.copyOf(NAMESPACE_NAMES.keySet());
     Iterator<Integer> iterator = orders.iterator();
 
+    // 遍历namespace对应的配置信息，把所有的namespace对应的配置信息封装成CompositePropertySource
     while (iterator.hasNext()) {
       int order = iterator.next();
       for (String namespace : NAMESPACE_NAMES.get(order)) {
@@ -83,6 +84,7 @@ public class PropertySourcesProcessor implements BeanFactoryPostProcessor, Envir
     NAMESPACE_NAMES.clear();
 
     // add after the bootstrap property source or to the first
+    // 保证apollo的配置在第一位
     if (environment.getPropertySources()
         .contains(PropertySourcesConstants.APOLLO_BOOTSTRAP_PROPERTY_SOURCE_NAME)) {
 

@@ -89,8 +89,11 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     m_loadConfigFailSchedulePolicy = new ExponentialSchedulePolicy(m_configUtil.getOnErrorRetryInterval(),
         m_configUtil.getOnErrorRetryInterval() * 8);
     gson = new Gson();
+    // 首次配置同步
     this.trySync();
+    // 每5分钟定时从Apollo配置中心服务端拉取应用的最新配置
     this.schedulePeriodicRefresh();
+    // 客户端和服务端保持了一个长连接，从而能在第一时间获得配置更新的推送
     this.scheduleLongPollingRefresh();
   }
 
@@ -99,6 +102,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     if (m_configCache.get() == null) {
       this.sync();
     }
+    // 把配置转换成Properties
     return transformApolloConfigToProperties(m_configCache.get());
   }
 
@@ -134,12 +138,15 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
 
     try {
       ApolloConfig previous = m_configCache.get();
+      // 从/config/{appId}/{clusterName}/{namespace:.+}接口中获取配置信息
       ApolloConfig current = loadApolloConfig();
 
       //reference equals means HTTP 304
+      // 配置发生了变化
       if (previous != current) {
         logger.debug("Remote Config refreshed!");
         m_configCache.set(current);
+        // 触发监听配置发生变化的事件
         this.fireRepositoryChange(m_namespace, this.getConfig());
       }
 
@@ -163,6 +170,11 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     return result;
   }
 
+  /**
+   * 从/config/{appId}/{clusterName}/{namespace:.+}接口中获取配置信息
+   * @param
+   * @return com.ctrip.framework.apollo.core.dto.ApolloConfig
+   **/
   private ApolloConfig loadApolloConfig() {
     if (!m_loadConfigRateLimiter.tryAcquire(5, TimeUnit.SECONDS)) {
       //wait at most 5 seconds
@@ -180,6 +192,8 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     long onErrorSleepTime = 0; // 0 means no sleep
     Throwable exception = null;
 
+    // 从/services/config接口中获取configservice的服务列表
+    // 为什么要通过http的请求方式获取，而不是直接通过eureka去获取？
     List<ServiceDTO> configServices = getConfigServices();
     String url = null;
     retryLoopLabel:
@@ -219,6 +233,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
         transaction.addData("Url", url);
         try {
 
+          // 从/config/{appId}/{clusterName}/{namespace:.+}接口中获取配置信息
           HttpResponse<ApolloConfig> response = m_httpUtil.doGet(request, ApolloConfig.class);
           m_configNeedForceRefresh.set(false);
           m_loadConfigFailSchedulePolicy.success();
@@ -226,6 +241,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
           transaction.addData("StatusCode", response.getStatusCode());
           transaction.setStatus(Transaction.SUCCESS);
 
+          // 如果返回状态码是304，则说明配置没有发生变化，直接返回原来的配置即可
           if (response.getStatusCode() == 304) {
             logger.debug("Config server responds with 304 HTTP status code.");
             return m_configCache.get();
@@ -314,6 +330,12 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     remoteConfigLongPollService.submit(m_namespace, this);
   }
 
+  /**
+   * Client长轮询更新配置入口
+   * @param longPollNotifiedServiceDto
+   * @param remoteMessages
+   * @return void
+   **/
   public void onLongPollNotified(ServiceDTO longPollNotifiedServiceDto, ApolloNotificationMessages remoteMessages) {
     m_longPollServiceDto.set(longPollNotifiedServiceDto);
     m_remoteMessages.set(remoteMessages);

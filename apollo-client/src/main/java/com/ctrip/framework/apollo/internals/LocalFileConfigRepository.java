@@ -53,8 +53,11 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
   public LocalFileConfigRepository(String namespace, ConfigRepository upstream) {
     m_namespace = namespace;
     m_configUtil = ApolloInjector.getInstance(ConfigUtil.class);
+    // 创建本地目录
     this.setLocalCacheDir(findLocalCacheDir(), false);
+    // 从RemoteConfigRepository同步配置信息并持久化到本地文件，加载配置信息到内存m_fileProperties
     this.setUpstreamRepository(upstream);
+    // 如果上面同步配置信息失败，这里会再同步一次，加载配置信息到内存m_fileProperties
     this.trySync();
   }
 
@@ -103,6 +106,7 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
       m_upstream.removeChangeListener(this);
     }
     m_upstream = upstreamConfigRepository;
+    // 把Properties持久化到文件中
     trySyncFromUpstream();
     upstreamConfigRepository.addChangeListener(this);
   }
@@ -155,6 +159,11 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
     }
   }
 
+  /**
+   * 把Properties持久化到文件中
+   * @param
+   * @return boolean
+   **/
   private boolean trySyncFromUpstream() {
     if (m_upstream == null) {
       return false;

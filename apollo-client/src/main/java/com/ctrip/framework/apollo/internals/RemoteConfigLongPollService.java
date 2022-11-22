@@ -153,9 +153,11 @@ public class RemoteConfigLongPollService {
       try {
         if (lastServiceDto == null) {
           List<ServiceDTO> configServices = getConfigServices();
+          // 随机选取一个ConfigService
           lastServiceDto = configServices.get(random.nextInt(configServices.size()));
         }
 
+        // /notifications/v2?appId=xxx&cluster=xxx&notificationsAsString=xxx
         url =
             assembleLongPollRefreshUrl(lastServiceDto.getHomepageUrl(), appId, cluster, dataCenter,
                 m_notifications);
@@ -163,6 +165,7 @@ public class RemoteConfigLongPollService {
         logger.debug("Long polling from {}", url);
 
         HttpRequest request = new HttpRequest(url);
+        // 90s的长连接
         request.setReadTimeout(LONG_POLLING_READ_TIMEOUT);
         if (!StringUtils.isBlank(secret)) {
           Map<String, String> headers = Signature.buildHttpHeaders(url, appId, secret);
@@ -179,6 +182,7 @@ public class RemoteConfigLongPollService {
           updateNotifications(response.getBody());
           updateRemoteNotifications(response.getBody());
           transaction.addData("Result", response.getBody().toString());
+          // 更新配置
           notify(lastServiceDto, response.getBody());
         }
 
@@ -225,6 +229,7 @@ public class RemoteConfigLongPollService {
           .get(String.format("%s.%s", namespaceName, ConfigFileFormat.Properties.getValue())));
       for (RemoteConfigRepository remoteConfigRepository : toBeNotified) {
         try {
+          // 更新配置
           remoteConfigRepository.onLongPollNotified(lastServiceDto, remoteMessages);
         } catch (Throwable ex) {
           Tracer.logError(ex);

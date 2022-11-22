@@ -21,6 +21,13 @@ import org.springframework.util.ReflectionUtils;
  */
 public class ApolloAnnotationProcessor extends ApolloProcessor {
 
+  /**
+   * 注入{@link Config}对象
+   * @param bean
+   * @param beanName
+   * @param field
+   * @return void
+   **/
   @Override
   protected void processField(Object bean, String beanName, Field field) {
     ApolloConfig annotation = AnnotationUtils.getAnnotation(field, ApolloConfig.class);
@@ -38,6 +45,13 @@ public class ApolloAnnotationProcessor extends ApolloProcessor {
     ReflectionUtils.setField(field, bean, config);
   }
 
+  /**
+   * 注册属性变更监听器
+   * @param bean
+   * @param beanName
+   * @param method
+   * @return void
+   **/
   @Override
   protected void processMethod(final Object bean, String beanName, final Method method) {
     ApolloConfigChangeListener annotation = AnnotationUtils
@@ -57,6 +71,7 @@ public class ApolloAnnotationProcessor extends ApolloProcessor {
     String[] namespaces = annotation.value();
     String[] annotatedInterestedKeys = annotation.interestedKeys();
     String[] annotatedInterestedKeyPrefixes = annotation.interestedKeyPrefixes();
+    // 执行setter方法
     ConfigChangeListener configChangeListener = new ConfigChangeListener() {
       @Override
       public void onChange(ConfigChangeEvent changeEvent) {

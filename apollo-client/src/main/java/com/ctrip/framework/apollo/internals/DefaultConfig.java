@@ -70,14 +70,17 @@ public class DefaultConfig extends AbstractConfig implements RepositoryChangeLis
   @Override
   public String getProperty(String key, String defaultValue) {
     // step 1: check system properties, i.e. -Dkey=value
+    // -D参数
     String value = System.getProperty(key);
 
     // step 2: check local cached properties file
+    // 配置中心的配置信息
     if (value == null && m_configProperties.get() != null) {
       value = m_configProperties.get().getProperty(key);
     }
 
     /**
+     * 系统变量
      * step 3: check env variable, i.e. PATH=...
      * normally system environment variables are in UPPERCASE, however there might be exceptions.
      * so the caller should provide the key in the right case
@@ -87,6 +90,7 @@ public class DefaultConfig extends AbstractConfig implements RepositoryChangeLis
     }
 
     // step 4: check properties file from classpath
+    // META-INF/config/{namespace}.properties
     if (value == null && m_resourceProperties != null) {
       value = m_resourceProperties.getProperty(key);
     }

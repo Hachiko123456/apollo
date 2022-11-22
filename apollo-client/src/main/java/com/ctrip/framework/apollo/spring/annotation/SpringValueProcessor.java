@@ -28,6 +28,7 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.annotation.Bean;
 
 /**
+ * 解析{@link Value}注解，注册到{@link SpringValueRegistry}中
  * Spring value processor of field or method which has @Value and xml config placeholders.
  *
  * @author github.com/zhegexiaohuozi  seimimaster@gmail.com
@@ -78,6 +79,7 @@ public class SpringValueProcessor extends ApolloProcessor implements BeanFactory
     if (value == null) {
       return;
     }
+    // 解析Value注解的，支持嵌套
     Set<String> keys = placeholderHelper.extractPlaceholderKeys(value.value());
 
     if (keys.isEmpty()) {
